@@ -1,0 +1,46 @@
+to run install the dependencies and then run:
+python train.py FACTOR_NAME
+e.g.: python train.py CTCF
+
+The required dependencies are:
+numpy
+scipy
+h5py
+pybedtools
+pysam
+pandas
+bw-python (https://github.com/dpryan79/libBigWig) 
+pyDNAbinding (https://github.com/nboley/pyDNAbinding)
+
+Additionally, directories containing the input data need to be placed into 4 
+directories which must be specified at the top of baseline.py. These directories 
+are:
+
+DNASE_IDR_PEAKS_BASE_DIR
+Stores the conservative DNASE peaks. 
+ 
+DNASE_FOLD_COV_DIR
+Stores DNASE fold coverage files in bigwig format. 
+
+TRAIN_TSV_BASE_DIR
+gzipped tsv files containing training regions and labels. Here's the top of an 
+example file: 
+chr     start   stop    A549    GM12878 H1-hESC HCT116  HeLa-S3 HepG2   K562    SK-N-SH
+chr10   600     800     U       U       U       U       U       U       U       U
+chr10   650     850     U       U       U       U       U       U       U       U
+chr10   700     900     U       U       U       U       U       U       U       U
+chr10   750     950     U       U       U       U       U       U       U       U
+chr10   800     1000    U       U       U       U       U       U       U       U
+
+
+TEST_TSV_BASE_DIR
+gzipped tsv files containing regions to predict on. Note that: 
+THE LABELS MUST BE SET BUT THEY ARE NOT USED
+it requires labels because I wanted to re-use a data structure. Here's the top 
+of an example file:
+chr     start   stop    K562
+chr1    600     800     A
+chr1    650     850     A
+chr1    700     900     A
+chr1    750     950     A
+chr1    800     1000    A
