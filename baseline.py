@@ -20,8 +20,6 @@ import pandas as pd
 from bw import BigWig
 
 from pyDNAbinding.binding_model import DNASequence, PWMBindingModel, DNABindingModels, load_binding_models
-from pyDNAbinding.DB import (
-    load_binding_models_from_db, NoBindingModelsFoundError, load_all_pwms_from_db)
 
 GenomicRegion = namedtuple('GenomicRegion', ['contig', 'start', 'stop'])
 
@@ -44,71 +42,6 @@ def md5(fname):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
-
-def load_model(factor_name):
-    """Load models from the DB.
-
-    This isn't useful - I just keep it here to show where the models came from.
-    """
-    try:
-        models = load_binding_models_from_db(tf_names=[factor_name,])
-        assert len(models) == 1, "Multiple binding models found for '{}'".format(factor_name)
-    except NoBindingModelsFoundError:
-        # if we couldnt find a good motif, just find any motif
-        # special case TAF1 because it doesnt exist in CISBP
-        if factor_name == 'TAF1':
-            models = [load_TAF1_binding_model(),]
-        else:
-            models = load_all_pwms_from_db(tf_names=factor_name)
-    model = models[0]
-    return model
-
-def save_models():
-    """Save models from all factors
-
-    This isn't useful - I just keep it here to show where the models came from.
-    """
-    factor_names = """
-    ARID3A
-    ATF2
-    ATF3
-    ATF7
-    CEBPB
-    CREB1
-    CTCF
-    E2F1
-    E2F6
-    EGR1
-    EP300
-    FOXA1
-    FOXA2
-    GABPA
-    GATA3
-    HNF4A
-    JUND
-    MAFK
-    MAX
-    MYC
-    NANOG
-    REST
-    RFX5
-    SPI1
-    SRF
-    STAT3
-    TAF1
-    TCF12
-    TCF7L2
-    TEAD4
-    YY1
-    ZNF143
-    """.split()
-    mos = []
-    for factor_name in factor_names:
-        mos.append(load_model(factor_name))
-    mos = DNABindingModels(mos)
-    with open("models.yaml", "w") as ofp:
-        ofp.write(mos.yaml_str)
-
 
 class LabelData(object):
     def __len__(self):
