@@ -1,5 +1,5 @@
 import os, sys
-from itertools import izip
+
 import gzip
 import tempfile
 import hashlib
@@ -62,7 +62,7 @@ class LabelData(object):
 
         """
         predictors = []
-        for i in xrange(len(self.samples)):
+        for i in range(len(self.samples)):
             predictors.append(self.dataframe.ix[:,i])
         return
     
@@ -173,13 +173,13 @@ class LabelData(object):
         # if we want to use a cached version...
         if self.load_cached is True:
             try:
-                print "Loading '%s'" % self.cached_fname
+                print("Loading '%s'" % self.cached_fname)
                 self.h5store = h5py.File(self.cached_fname)
                 self.data = pd.read_hdf(self.cached_fname, 'data')
             except KeyError:
                 self.data = self._build_dataframe()
                 self.data.to_hdf(self.cached_fname, 'data')
-                print self.h5store
+                print(self.h5store)
         else:
             self.data = self._build_dataframe()
         
@@ -191,7 +191,7 @@ class LabelData(object):
         binding_models = load_binding_models("models.yaml")
         model = binding_models.get_from_tfname(self.factor)
         for i, seq in enumerate(self.iter_seqs(fasta_fname)):
-            if i%1000000 == 0: print >> sys.stderr, i, len(self)
+            if i%1000000 == 0: print(i, len(self), file=sys.stderr)
             all_agg_scores[i,:] = aggregate_region_scores(
                 DNASequence(seq).score_binding_sites(model, 'MAX')
             )        
@@ -218,8 +218,8 @@ class LabelData(object):
             b = BigWig(os.path.join(path, fname))
             for region_i, region in enumerate(self.iter_regions()):
                 if region_i%1000000 == 0:
-                    print "Sample %i/%i, row %i/%i" % (
-                        sample_i+1, len(self.samples), region_i, len(self))
+                    print("Sample %i/%i, row %i/%i" % (
+                        sample_i+1, len(self.samples), region_i, len(self)))
                 scores[region_i, sample_i] = b.stats(
                     region.contig, region.start, region.stop, 'mean')
             b.close()
@@ -271,7 +271,7 @@ def train_model(factor):
     subset_train_data = []
     subset_train_labels = []
     for sample_i, sample in enumerate(all_data.samples):
-        print sample_i, sample
+        print(sample_i, sample)
         sample_labels.append(sample)
         dnase_peaks_fname = (
             DNASE_IDR_PEAKS_BASE_DIR 
@@ -286,29 +286,29 @@ def train_model(factor):
         sample_train_labels = sample_data.build_integer_labels(sample_i)
         subset_train_labels.append(sample_train_labels)
 
-    print "Building the training data sets"
+    print("Building the training data sets")
     train_df = pd.concat(subset_train_data, levels=sample_labels)
-    print train_df.head()
+    print(train_df.head())
     train_labels = np.concatenate(subset_train_labels, axis=0)
 
-    print "Filtering out ambiguous labels"
+    print("Filtering out ambiguous labels")
     non_ambiguous_labels = (train_labels > -0.5)
     train_amb_filtered_mat = train_df.iloc[non_ambiguous_labels].as_matrix()
     train_amb_filtered_labels = train_labels[non_ambiguous_labels]
 
-    print "Fitting the model"
+    print("Fitting the model")
     from sklearn.linear_model import SGDClassifier
     mo = SGDClassifier(
         loss='log', class_weight='balanced', n_jobs=16)
     mo.fit(train_amb_filtered_mat, train_amb_filtered_labels)
 
-    print "Loading the test set"
+    print("Loading the test set")
     true_labels_fname = FULL_GENOME_TSV_BASE_DIR + \
         "{}.train.labels.tsv.gz".format(factor)
     label_data = LabelData(true_labels_fname)
-    print label_data.samples
+    print(label_data.samples)
     for sample in label_data.samples:
-        print "Loading the test predictors"
+        print("Loading the test predictors")
         dnase_peaks_fname = (
             DNASE_IDR_PEAKS_BASE_DIR 
             + "DNASE.%s.conservative.narrowPeak.gz" % sample
@@ -316,15 +316,15 @@ def train_model(factor):
         sample_data = LabelData(true_labels_fname, dnase_peaks_fname)
         dnase_scores = sample_data.load_or_build_dnase_fc_scores()[[sample,]]
         dnase_scores.columns = ['dnase_fc',]
-        print "Building the test data dataframe"
+        print("Building the test data dataframe")
         motif_scores = label_data.load_or_build_motif_scores('hg19.genome.fa')
         sample_train_df = dnase_scores.join(motif_scores, how='inner')
-        print sample_train_df.head()
-        print "Predicting prbs"
+        print(sample_train_df.head())
+        print("Predicting prbs")
         pred_prbs = mo.predict_proba(sample_train_df)[:,1]
         result = pd.DataFrame({'prb': pred_prbs}, index=sample_train_df.index)
         result = result.reindex(label_data.data.index, fill_value=0.0)
-        print result.head()
+        print(result.head())
 
         ofname = 'F.{}.{}.tab'.format(factor, sample)
         result.to_csv(ofname, sep="\t", header=False)
